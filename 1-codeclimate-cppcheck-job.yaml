@@ -29,10 +29,12 @@ spec:
           command:
             - sh
             - -c
-            - "git clone https://gitee.com/uhziel/cJSON.git /code && mkdir /build && cd /build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../cJSON/"
+            - "git clone https://gitee.com/uhziel/cJSON.git /code && mkdir /build && cd /build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../code/"
           volumeMounts:
             - mountPath: /code
               name: code
+            - mountPath: /build
+              name: build
       volumes:
         - name: code
           emptyDir:
