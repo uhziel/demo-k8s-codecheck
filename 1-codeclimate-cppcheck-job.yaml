@@ -1,0 +1,43 @@
+# $ kubectl create configmap codeclimate-cppcheck-config --from-file=config.json
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cppcheck-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: cppcheck
+        image: codeclimate/codeclimate-cppcheck
+        volumeMounts:
+          - mountPath: /code
+            name: code
+            readOnly: true
+            subPath: cJSON
+          - mountPath: /compile_commands.json
+            name: code
+            readOnly: true
+            subPath: build/compile_commands.json
+          - mountPath: /config.json
+            name: config
+            readOnly: true
+            subPath: config.json
+      restartPolicy: Never
+      initContainers:
+        - name: pull-repo
+          image: uhziel/demo-k8s-codecheck-tool
+          command:
+            - sh
+            - -c
+            - "git clone https://gitee.com/uhziel/cJSON.git && mkdir build && cd build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../cJSON/"
+          volumeMounts:
+            - mountPath: /git
+              name: code
+      volumes:
+        - name: code
+          emptyDir:
+            {}
+        - name: config
+          configMap:
+            name: codeclimate-cppcheck-config
