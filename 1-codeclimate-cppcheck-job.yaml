@@ -14,10 +14,9 @@ spec:
           - mountPath: /code
             name: code
             readOnly: true
-          - mountPath: /compile_commands.json
+          - mountPath: /build
             name: build
             readOnly: true
-            subPath: compile_commands.json
           - mountPath: /config.json
             name: config
             readOnly: true
@@ -29,7 +28,7 @@ spec:
           command:
             - sh
             - -c
-            - "git clone https://gitee.com/uhziel/cJSON.git /code && mkdir /build && cd /build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../code/"
+            - "git clone https://gitee.com/uhziel/cJSON.git /code && mkdir -p /build && cd /build && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../code/"
           volumeMounts:
             - mountPath: /code
               name: code
