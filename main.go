@@ -20,6 +20,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"io"
 	"log"
 	"path/filepath"
 
@@ -81,6 +83,33 @@ func createJob(clientset *kubernetes.Clientset, jobName, imageName string) {
 	log.Println("Created K8s job successfully")
 }
 
+func getPodLogs(clientset *kubernetes.Clientset, podName, containerName string) {
+	pods := clientset.CoreV1().Pods("default")
+	opts := v1.PodLogOptions{
+		Container: containerName,
+	}
+	request := pods.GetLogs(podName, &opts)
+	podLogs, err := request.Stream(context.TODO()) // 这里才开始实际执行
+	if err != nil {
+		log.Fatalln("error in opening stream.")
+	}
+	defer podLogs.Close()
+
+	for {
+		buf := make([]byte, 1024)
+		num, err := podLogs.Read(buf)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Fatalln("read err.")
+		} else if num == 0 {
+			continue
+		} else {
+			fmt.Println(string(buf[:num]))
+		}
+	}
+}
+
 func main() {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -92,5 +121,6 @@ func main() {
 
 	clientset := connectToK8s(*kubeconfig)
 
-	createJob(clientset, "cppcheck-job", "hello-world")
+	//createJob(clientset, "cppcheck-job", "hello-world")
+	getPodLogs(clientset, "cppcheck-job-svjpj", "")
 }
