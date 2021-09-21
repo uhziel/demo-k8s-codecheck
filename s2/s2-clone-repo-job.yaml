@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s2-clone-repo
+spec:
+  template:
+    spec:
+      containers:
+        - name: clone-repo
+          image: uhziel/cmakebuild:0.0.2
+          resources:
+            limits:
+              memory: "1000Mi"
+              cpu: "1000m"
+          command:
+            - sh
+            - -c
+            - |
+              git clone https://gitee.com/uhziel/cJSON.git /code
+              cd /code && mkdir build && cd build
+              cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+          volumeMounts:
+            - mountPath: /code
+              name: code
+      restartPolicy: Never
+      volumes:
+        - name: code
+          persistentVolumeClaim:
+            claimName: s2-clone-repo
+
+# 成功拉取代码和生成了编译数据库
+# → cat /var/lib/docker/volumes/minikube/_data/hostpath-provisioner/demo-k8s-codecheck/s2-clone-repo/build/compile_commands.json 
+# [
+# {
+#  "directory": "/code/build",
+#  "command": "/usr/bin/cc -DCJSON_API_VISIBILITY -DCJSON_EXPORT_SYMBOLS -DENABLE_LOCALES   -std=c89 -pedantic -Wall -Wextra -Werror -Wstrict-prototypes -Wwrite-strings -Wshadow -Winit-self -Wcast-align -Wformat=2 -Wmissing-prototypes -Wstrict-overflow=2 -Wcast-qual -Wundef -Wswitch-default -Wconversion -Wc++-compat -fstack-protector-strong -Wdouble-promotion -Wparentheses -Wformat-overflow -Wunused-macros -Wswitch-enum -fvisibility=hidden  -o CMakeFiles/cJSON_test.dir/test.c.o -c /code/test.c",
+#  "file": "/code/test.c"
+# },

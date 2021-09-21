@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s2-push-work-items
+spec:
+  template:
+    spec:
+      containers:
+        - name: push-work-items
+          image: uhziel/cmakebuild:0.0.2
+          resources:
+            limits:
+              memory: "1000Mi"
+              cpu: "1000m"
+          command:
+            - sh
+            - -c
+            - |
+              cd /code/build
+              for job in $(jq --raw-output '.[].file' compile_commands.json); do
+                redis-cli -h redis rpush codecheck-jobs ${job}
+              done
+          volumeMounts:
+            - mountPath: /code
+              name: code
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: code
+          persistentVolumeClaim:
+            claimName: s2-clone-repo

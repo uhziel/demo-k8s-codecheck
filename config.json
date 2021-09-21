@@ -1,12 +1,11 @@
 {
     "config": {
         "check": "all",
-        "project": "/build/compile_commands.json",
+        "project": "/code/build/compile_commands.json",
         "language": "c",
         "inconclusive": true
     },
     "include_paths": [
-        "tests/unity/extras/fixture/src/unity_fixture.c",
-        "tests/unity/test/testdata/testRunnerGenerator.c"
+        "."
     ]
 }
