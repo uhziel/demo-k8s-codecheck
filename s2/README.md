@@ -1,3 +1,17 @@
+# 试验分布式的效果
+
+环境：minikube 单节点集群
+
+操作步骤
+
+1. make init
+2. make pushworks # 推送 工作到工作队列
+3. make cppcheck # 单 pod 测试
+4. make cppcheckp # 多 pod 并发测试
+5. make clean # 清理环境
+
+## 结果
+
 ```
 $ kubectl get all
 NAME                                READY   STATUS      RESTARTS   AGE
