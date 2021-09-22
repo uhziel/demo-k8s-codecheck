@@ -1,0 +1,40 @@
+# $ kubectl create configmap codeclimate-cppcheck-config --from-file=config.json
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s2-cppcheck-parallelism
+spec:
+  parallelism: 4
+  completions: 4
+  template:
+    spec:
+      containers:
+      - name: cppcheck
+        image: uhziel/codeclimate-cppcheck:0.0.1
+        resources:
+          limits:
+            memory: "1000Mi"
+            cpu: "1000m"
+        env:
+          - name: CODE_ANALYSIS_WORK_QUEUE_URL
+            value: redis
+          - name: CODE_ANALYSIS_WORK_QUEUE_NAME
+            value: codecheck-jobs
+        volumeMounts:
+          - mountPath: /code
+            name: code
+            readOnly: true
+          - mountPath: /config.json
+            name: config
+            readOnly: true
+            subPath: config.json
+      restartPolicy: Never
+      volumes:
+        - name: code
+          nfs:
+            path: /home/nfs_shared/pvc-b5b21c01-4a80-4bb6-9f8a-63b16ff4122f_demo-k8s-codecheck_s3-clone-repo
+            server: 192.168.7.189
+        - name: config
+          configMap:
+            name: codeclimate-cppcheck-config

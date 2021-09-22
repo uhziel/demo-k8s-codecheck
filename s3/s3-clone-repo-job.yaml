@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-clone-repo
+spec:
+  template:
+    spec:
+      containers:
+        - name: clone-repo
+          image: uhziel/cmakebuild:0.0.2
+          resources:
+            limits:
+              memory: "1000Mi"
+              cpu: "1000m"
+          command:
+            - sh
+            - -c
+            - |
+              git clone https://gitee.com/uhziel/cJSON.git /code
+              cd /code && mkdir build && cd build
+              cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+          volumeMounts:
+            - mountPath: /code
+              name: code
+      restartPolicy: Never
+      volumes:
+        - name: code
+          persistentVolumeClaim:
+            claimName: s3-clone-repo
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: extra-role
+                  operator: In
+                  values:
+                    - "nfs-server"
