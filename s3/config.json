@@ -1,0 +1,13 @@
+{
+    "config": {
+        "project": "/code/build/compile_commands.json",
+        "inline-suppr": true,
+        "check": "all",
+        "inconclusive": true,
+        "suppressions-list": "/config/suppressions.txt",
+        "stds": ["c++03"]
+    },
+    "include_paths": [
+        "."
+    ]
+}

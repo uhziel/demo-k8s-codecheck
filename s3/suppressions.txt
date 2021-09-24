@@ -1,0 +1,4 @@
+noExplicitConstructor:share/netengine/BiboFrame/Event.h
+noExplicitConstructor:LogServer/logserver/OSSLoger.h
+noExplicitConstructor:share/utilities/cryptlite/hmac.h
+unusedFunction

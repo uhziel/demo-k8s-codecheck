@@ -1,4 +1,4 @@
-# $ kubectl create configmap codeclimate-cppcheck-config --from-file=config.json
+# $ kubectl create configmap s3-codeclimate-cppcheck-config --from-file=config.json --from-file=suppressions.txt
 
 apiVersion: batch/v1
 kind: Job
@@ -8,31 +8,34 @@ spec:
   template:
     spec:
       containers:
-      - name: cppcheck
-        image: uhziel/codeclimate-cppcheck:0.0.1
-        resources:
-          limits:
-            memory: "1000Mi"
-            cpu: "1000m"
-        env:
-          - name: CODE_ANALYSIS_WORK_QUEUE_URL
-            value: redis
-          - name: CODE_ANALYSIS_WORK_QUEUE_NAME
-            value: codecheck-jobs
-        volumeMounts:
-          - mountPath: /code
-            name: code
-            readOnly: true
-          - mountPath: /config.json
-            name: config
-            readOnly: true
-            subPath: config.json
+        - name: cppcheck
+          image: uhziel/codeclimate-cppcheck:0.0.2
+          resources:
+            limits:
+              memory: "1000Mi"
+              cpu: "1000m"
+          env:
+            - name: CODE_ANALYSIS_WORK_QUEUE_URL
+              value: redis
+            - name: CODE_ANALYSIS_WORK_QUEUE_NAME
+              value: codecheck-jobs
+          volumeMounts:
+            - mountPath: /code
+              name: code
+              readOnly: true
+            - mountPath: /config.json
+              name: config
+              readOnly: true
+              subPath: config.json
+            - mountPath: /config
+              name: config
+              readOnly: true
       restartPolicy: Never
       volumes:
         - name: code
           nfs:
-            path: /home/nfs_shared/pvc-b5b21c01-4a80-4bb6-9f8a-63b16ff4122f_demo-k8s-codecheck_s3-clone-repo
+            path: /home/nfs_shared/pvc-56630a49-0335-4b7d-8138-4bdff9245836_demo-k8s-codecheck_s3-clone-repo
             server: 192.168.7.189
         - name: config
           configMap:
-            name: codeclimate-cppcheck-config
+            name: s3-codeclimate-cppcheck-config
