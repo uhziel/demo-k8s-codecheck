@@ -1,0 +1,130 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: codecheck-
+spec:
+  entrypoint: main
+  volumes:
+  - name: config
+    configmap:
+      name: codeclimate-cppcheck-config
+  templates:
+  - name: main
+    steps:
+    - - name: redis
+        template: redis
+
+    - - name: ready-analysis
+        template: ready-analysis
+    
+    - - name: push-work-items
+        template: push-work-items
+        arguments:
+          parameters:
+          - name: redis
+            value: "{{steps.redis.ip}}"
+          artifacts:
+          - name: cJSON-build
+            from: "{{steps.ready-analysis.outputs.artifacts.cJSON-build}}"
+
+    - - name: cppcheck
+        template: cppcheck
+        arguments:
+          parameters:
+          - name: redis
+            value: "{{steps.redis.ip}}"
+          artifacts:
+          - name: cJSON-build
+            from: "{{steps.ready-analysis.outputs.artifacts.cJSON-build}}"
+
+  - name: redis
+    daemon: true
+    retryStrategy:
+      limit: 10
+    container:
+      image: redis
+      command: ["docker-entrypoint.sh"]
+      args: ["redis-server"]
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+
+  - name: ready-analysis
+    inputs:
+      artifacts:
+      - name: cJSON-code
+        path: /code
+        git:
+          repo: https://gitee.com/uhziel/cJSON.git
+          revision: "master"
+    script:
+      image: uhziel/cmakebuild:0.0.2
+      command: ["bash"]
+      source: |
+        cd /code && mkdir build && cd build
+        cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+      resources:
+        requests:
+          memory: 32Mi
+          cpu: 100m
+    outputs:
+      artifacts:
+      - name: cJSON-build
+        path: /code
+
+  - name: push-work-items
+    inputs:
+      parameters:
+      - name: redis
+      artifacts:
+      - name: cJSON-build
+        path: /code
+    script:
+      image: uhziel/cmakebuild:0.0.2
+      command: ["bash"]
+      source: |
+        cd /code/build
+        for job in $(jq --raw-output '.[].file' compile_commands.json); do
+          redis-cli -h {{inputs.parameters.redis}} RPUSH codecheck-jobs ${job}
+        done
+      resources:
+        requests:
+          memory: 32Mi
+          cpu: 100m
+
+  - name: cppcheck
+    inputs:
+      parameters:
+      - name: redis
+      artifacts:
+      - name: cJSON-build
+        path: /code
+    container:
+      image: uhziel/codeclimate-cppcheck:0.0.2
+      command: ["/usr/src/app/bin/codeclimate-cppcheck"]
+      args: []
+      resources:
+        limits:
+          memory: "1000Mi"
+          cpu: "1000m"
+      env:
+        - name: CODE_ANALYSIS_WORK_QUEUE_URL
+          value: "{{inputs.parameters.redis}}"
+        - name: CODE_ANALYSIS_WORK_QUEUE_NAME
+          value: codecheck-jobs
+      volumeMounts:
+        - mountPath: /config.json
+          name: config
+          readOnly: true
+          subPath: config.json
+
+# 必须显式指定 command args
+
+#           value: {{inputs.parameters.redis}} 花括号周围没加""会出现下面错误
+# ERRO[2022-03-05T16:59:49.849Z] yaml file at index 0 is not valid: error converting YAML to JSON: yaml: invalid map key: map[interface {}]interface {}{"inputs.parameters.redis":interface {}(nil)} 
+
+#      command: []
+#      args: ["/usr/src/app/bin/codeclimate-cppcheck"]
+# container "main" in template "cppcheck", does not have the command specified: when using the emissary executor you must either explicitly specify the command, or list the image's command in the index: https://argoproj.github.io/argo-workflows/workflow-executors/#emissary-emissary
+# 
